@@ -1,30 +1,28 @@
 package org.example.airplanewar;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.effect.ColorAdjust;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
 import javafx.scene.media.AudioClip;
 
-import java.io.File;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Random;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class GameController implements Initializable {
 
@@ -47,11 +45,13 @@ public class GameController implements Initializable {
     private ArrayList<Thread> strangerShootingThreads;
     private int score = 0;
     private AudioClip exp1, exp2;
-    private Label gameOverLabel, showScoreLabel;
     private Image explosion;
+    private Timeline addBossTimeline;
+    private HashMap<ImageView, Health> enemyHealthMap;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        enemyHealthMap = new HashMap<>();
         strangers = new ArrayList<>();
         playerBullets = new ArrayList<>();
         strangersBullets = new ArrayList<>();
@@ -60,6 +60,12 @@ public class GameController implements Initializable {
         exp2 = new AudioClip(Objects.requireNonNull(getClass().getResource("sounds/explosion2.mp3")).toExternalForm());
         explosion = new Image(Objects.requireNonNull(getClass().getResource("images/explosion.png")).toExternalForm());
 
+        DropShadow dropShadow = new DropShadow();
+        dropShadow.setRadius(10);
+        dropShadow.setOffsetX(5);
+        dropShadow.setOffsetY(5);
+        dropShadow.setColor(Color.BLACK);
+
         healthProgressBar.setStyle("-fx-accent: #50C878;");
 
         airplaneImageView.setFocusTraversable(true);
@@ -67,16 +73,24 @@ public class GameController implements Initializable {
         rootPane.requestFocus();
         rootPane.setOnKeyPressed(this::handleKeyPress);
 
-        new Thread(() -> {
+        Thread strangerCreatorThread = new Thread(() -> {
             while (!gameOver) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(1200);
                     Platform.runLater(this::addStranger);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
-        }).start();
+        });
+        strangerCreatorThread.setDaemon(true);
+        strangerCreatorThread.start();
+
+         addBossTimeline = new Timeline(new KeyFrame(Duration.seconds(15), event -> {
+            Platform.runLater(this::addBoss);
+        }));
+        addBossTimeline.setCycleCount(Timeline.INDEFINITE);
+        addBossTimeline.play();
 
         scoreLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
         updateScore();
@@ -133,7 +147,7 @@ public class GameController implements Initializable {
 
     private void shootBullet() {
         try {
-            Image bulletImage = new Image(Objects.requireNonNull(getClass().getResource("images/bullet.png")).toExternalForm());
+            Image bulletImage = new Image(Objects.requireNonNull(getClass().getResource("images/missile1.png")).toExternalForm());
 
             ImageView newBullet = new ImageView(bulletImage);
             newBullet.setFitWidth(25);
@@ -172,7 +186,7 @@ public class GameController implements Initializable {
 
     private void strangerShootBullet(ImageView newStranger) {
         try {
-            Image bulletImage = new Image(Objects.requireNonNull(getClass().getResource("images/bullet.png")).toExternalForm());
+            Image bulletImage = new Image(Objects.requireNonNull(getClass().getResource("images/missile2.png")).toExternalForm());
 
             ImageView newBullet = new ImageView(bulletImage);
             newBullet.setFitWidth(20);
@@ -214,6 +228,53 @@ public class GameController implements Initializable {
         }
     }
 
+    private void bossShootBullet(ImageView boss) {
+        Platform.runLater(() -> {
+            try {
+                Image bulletImage = new Image(Objects.requireNonNull(getClass().getResource("images/missile2.png")).toExternalForm());
+
+                ImageView newBullet = new ImageView(bulletImage);
+                newBullet.setFitWidth(40);
+                newBullet.setFitHeight(40);
+                newBullet.setPreserveRatio(true);
+
+                Random random = new Random();
+                double bulletX = random.nextInt(800);
+                double bulletY = 0;
+                newBullet.setLayoutX(bulletX);
+                newBullet.setLayoutY(bulletY);
+
+                strangersBullets.add(newBullet);
+                rootPane.getChildren().add(newBullet);
+
+                TranslateTransition bulletMovement = new TranslateTransition();
+                bulletMovement.setNode(newBullet);
+                bulletMovement.setDuration(Duration.millis(1200));
+                bulletMovement.setByY(500);
+                bulletMovement.setCycleCount(1);
+                bulletMovement.setAutoReverse(false);
+                bulletMovement.setOnFinished(event -> {
+                    rootPane.getChildren().remove(newBullet);
+                    strangersBullets.remove(newBullet);
+                });
+                bulletMovement.play();
+
+                bulletMovement.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
+                    if (newBullet.getBoundsInParent().intersects(airplaneImageView.getBoundsInParent())) {
+                        rootPane.getChildren().remove(newBullet);
+                        healthProgressBar.setProgress(healthProgressBar.getProgress() - 0.01);
+                        exp2.play();
+                        checkGameOver();
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Error loading bullet image.");
+            }
+        });
+    }
+
     private void checkBulletCollisions() {
         ArrayList<ImageView> bulletsToRemove = new ArrayList<>();
 
@@ -238,36 +299,42 @@ public class GameController implements Initializable {
 
     private void checkCollisions(ImageView bullet) {
         ImageView strangerToRemove = null;
-
         for (ImageView stranger : new ArrayList<>(strangers)) {
             if (bullet.getBoundsInParent().intersects(stranger.getBoundsInParent())) {
-                // Remove bullet from game
                 rootPane.getChildren().remove(bullet);
                 playerBullets.remove(bullet);
 
-                // Set the explosion image
-                stranger.setImage(explosion);
+                Health health = enemyHealthMap.get(stranger);
+                health.decreaseHealth(10);
 
-                // Mark the stranger for removal
-                strangerToRemove = stranger;
+                String[] wholePathImage = stranger.getImage().getUrl().split("/");
+                String imageName = wholePathImage[wholePathImage.length - 1];
 
-                // Update the score
-                score += 10;
-                updateScore();
-                exp1.play();
-
-                break;  // Exit the loop after processing one collision
+                if (health.isDead() && !imageName.contains("boss")) {
+                    stranger.setImage(explosion);
+                    strangerToRemove = stranger;
+                    score += 10;
+                    updateScore();
+                    exp1.play();
+                } else if (health.isDead() && imageName.contains("boss")) {
+                    stranger.setImage(explosion);
+                    strangerToRemove = stranger;
+                    score += 100;
+                    updateScore();
+                    exp2.play();
+                }
+                break;
             }
         }
 
         if (strangerToRemove != null) {
             strangers.remove(strangerToRemove);
+            enemyHealthMap.remove(strangerToRemove);
 
-            // Show the explosion before removing the ImageView
             ImageView finalStrangerToRemove = strangerToRemove;
             new Thread(() -> {
                 try {
-                    Thread.sleep(500); // Show explosion for 500 milliseconds
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -299,13 +366,15 @@ public class GameController implements Initializable {
 
         strangers.add(newStranger);
 
+        enemyHealthMap.put(newStranger, new Health(50));
+
         rootPane.getChildren().add(newStranger);
 
         Thread strangerShootingThread = new Thread(() -> {
             try {
                 while (strangers.contains(newStranger) && !gameOver) {
                     Platform.runLater(() -> strangerShootBullet(newStranger));
-                    Thread.sleep(1000);
+                    Thread.sleep(1100);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -314,6 +383,45 @@ public class GameController implements Initializable {
         strangerShootingThread.setDaemon(true);
         strangerShootingThread.start();
         strangerShootingThreads.add(strangerShootingThread);
+    }
+
+    private void addBoss() {
+        Image bossImage = new Image(Objects.requireNonNull(getClass().getResource("images/boss.png")).toExternalForm());
+        ImageView boss = new ImageView(bossImage);
+        boss.setLayoutX(0);
+        boss.setLayoutY(50);
+        boss.setFitWidth(150);
+        boss.setFitHeight(150);
+
+        enemyHealthMap.put(boss, new Health(2000));
+
+        TranslateTransition bossMovement = new TranslateTransition();
+        bossMovement.setNode(boss);
+        bossMovement.setDuration(Duration.millis(2000));
+        bossMovement.setFromX(0);
+        bossMovement.setByX(650);
+        bossMovement.setCycleCount(Timeline.INDEFINITE);
+        bossMovement.setAutoReverse(true);
+
+        boss.setEffect(new DropShadow(10, Color.BLACK));
+        strangers.add(boss);
+        rootPane.getChildren().add(boss);
+
+        bossMovement.play();
+
+        Thread bossShootingThread = new Thread(() -> {
+            try {
+                while (strangers.contains(boss) && !gameOver) {
+                    Platform.runLater(() -> bossShootBullet(boss));
+                    Thread.sleep(1200);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        bossShootingThread.setDaemon(true);
+        bossShootingThread.start();
+        strangerShootingThreads.add(bossShootingThread);
     }
 
     private void checkGameOver() {
@@ -325,21 +433,22 @@ public class GameController implements Initializable {
                 stopAllThreads();
                 showGameOverMessage();
                 applyBlurEffect();
+                addBossTimeline.stop();
             });
         }
     }
 
     private void showGameOverMessage() {
-        gameOverLabel = new Label("Game Over!");
+        Label gameOverLabel = new Label("Game Over!");
         gameOverLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 50));
         gameOverLabel.setStyle("-fx-text-fill: white;");
-        gameOverLabel.setLayoutX(rootPane.getWidth() / 2 - 150);
+        gameOverLabel.setLayoutX((rootPane.getWidth() - 300) / 2);
         gameOverLabel.setLayoutY(rootPane.getHeight() / 2 - 150);
 
-        showScoreLabel = new Label("Your Score: " + score);
+        Label showScoreLabel = new Label("Your Score: " + score);
         showScoreLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 40));
         showScoreLabel.setStyle("-fx-text-fill: white;");
-        showScoreLabel.setLayoutX(rootPane.getWidth() / 2 - 150);
+        showScoreLabel.setLayoutX((rootPane.getWidth() - 300) / 2);
         showScoreLabel.setLayoutY(rootPane.getHeight() / 2 - 50);
 
         rootPane.getChildren().add(gameOverLabel);
@@ -371,6 +480,4 @@ public class GameController implements Initializable {
         scoreLabel.setEffect(blur);
         healthProgressBar.setEffect(blur);
     }
-
-
 }

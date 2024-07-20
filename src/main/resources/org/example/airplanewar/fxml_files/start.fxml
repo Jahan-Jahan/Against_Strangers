@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.effect.Light.Distant?>
+<?import javafx.scene.effect.Lighting?>
+<?import javafx.scene.effect.Shadow?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+
+<AnchorPane id="pane" prefHeight="462.0" prefWidth="453.0" stylesheets="@startStyle.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label layoutX="53.0" layoutY="47.0" text="Against Strangers!" textFill="#ffb6b6">
+         <font>
+            <Font name="MV Boli" size="40.0" />
+         </font>
+      </Label>
+      <Button layoutX="158.0" layoutY="171.0" mnemonicParsing="false" onAction="#startGame" prefHeight="48.0" prefWidth="135.0" style="-fx-background-color: #50C878;" text="Start!" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="25.0" />
+         </font>
+         <effect>
+            <Lighting diffuseConstant="1.29" specularConstant="0.61" specularExponent="14.5" surfaceScale="0.86">
+               <bumpInput>
+                  <Shadow />
+               </bumpInput>
+               <light>
+                  <Light.Distant />
+               </light>
+            </Lighting>
+         </effect>
+      </Button>
+      <Button layoutX="173.0" layoutY="231.0" mnemonicParsing="false" onAction="#guides" prefHeight="52.0" prefWidth="106.0" style="-fx-background-color: #50C878;" text="Guide" textFill="WHITE">
+         <font>
+            <Font size="25.0" />
+         </font>
+         <effect>
+            <Lighting diffuseConstant="1.29" specularConstant="0.61" specularExponent="14.5" surfaceScale="0.86">
+               <bumpInput>
+                  <Shadow />
+               </bumpInput>
+               <light>
+                  <Light.Distant />
+               </light>
+            </Lighting>
+         </effect>
+      </Button>
+      <Button layoutX="185.0" layoutY="298.0" mnemonicParsing="false" onAction="#exitGame" style="-fx-background-color: #50C878;" text="Exit" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="25.0" />
+         </font>
+         <effect>
+            <Lighting diffuseConstant="1.29" specularConstant="0.61" specularExponent="14.5" surfaceScale="0.86">
+               <bumpInput>
+                  <Shadow />
+               </bumpInput>
+               <light>
+                  <Light.Distant />
+               </light>
+            </Lighting>
+         </effect>
+      </Button>
+   </children>
+</AnchorPane>

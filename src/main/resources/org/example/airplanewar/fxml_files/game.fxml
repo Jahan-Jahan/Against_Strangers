@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane id="pane" fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" stylesheets="@gameStyle.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.airplanewar.GameController">
+   <children>
+      <ImageView fx:id="airplaneImageView" fitHeight="100.0" fitWidth="100.0" layoutX="355.0" layoutY="460.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../images/fighter_jet.png" />
+         </image>
+         <effect>
+            <Lighting diffuseConstant="1.56" specularConstant="0.37" specularExponent="1.65" surfaceScale="4.99">
+               <bumpInput>
+                  <Shadow />
+               </bumpInput>
+               <light>
+                  <Light.Distant />
+               </light>
+            </Lighting>
+         </effect>
+      </ImageView>
+      <Label fx:id="scoreLabel" layoutX="14.0" layoutY="569.0" textFill="#48004f" />
+      <ProgressBar fx:id="healthProgressBar" layoutX="128.0" layoutY="569.0" prefHeight="26.0" prefWidth="554.0" progress="1.0" />
+   </children>
+</AnchorPane>

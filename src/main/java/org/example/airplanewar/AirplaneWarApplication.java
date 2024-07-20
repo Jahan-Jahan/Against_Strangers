@@ -14,9 +14,9 @@ import java.util.Objects;
 public class AirplaneWarApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("game.fxml")));
+        Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("fxml_files/start.fxml")));
         Scene scene = new Scene(root);
-        stage.setTitle("Airplane-War");
+        stage.setTitle("Against-Strangers");
         stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
